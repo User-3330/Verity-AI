@@ -1,0 +1,2245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verity</title>
+    <link rel="icon" type="image/jpeg" href="verity.jpg">
+    <style>
+        :root {
+            --bg-color: #131314;
+            --sidebar-color: #1e1f20;
+            --sidebar-hover: #2b2c2f;
+            --text-primary: #e3e3e3;
+            --text-secondary: #c4c7c5;
+            --accent-blue: #4c8bf5;
+            --border-color: #2a2b2e;
+            --code-bg: #1e1f22;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- VENTANA MODAL DE REGISTRO (LOCALSTORAGE) --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay[hidden] {
+            display: none;
+        }
+
+        .permission-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.82);
+            backdrop-filter: blur(8px);
+        }
+
+        .permission-overlay[hidden] {
+            display: none;
+        }
+
+        .permission-content {
+            width: min(100%, 520px);
+            max-height: min(90vh, 760px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 26px;
+            border: 1px solid var(--border-color);
+            border-radius: 22px;
+            background: var(--sidebar-color);
+            box-shadow: 0 18px 56px rgba(0,0,0,0.55);
+        }
+
+        .permission-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: rgba(255,255,255,0.025);
+        }
+
+        .permission-item-copy {
+            flex: 1;
+            min-width: 0;
+            text-align: left;
+        }
+
+        .permission-item-title {
+            margin-bottom: 3px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .permission-item-description,
+        .permission-item-status {
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .permission-item-status {
+            margin-top: 4px;
+            color: #8ab4f8;
+        }
+
+        .permission-action {
+            flex: 0 0 auto;
+            padding: 8px 11px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: #28292c;
+            color: var(--text-primary);
+            font: inherit;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .permission-action:hover:not(:disabled) {
+            border-color: var(--accent-blue);
+        }
+
+        .permission-action:disabled {
+            color: #8e918f;
+            cursor: default;
+        }
+
+        .permission-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            color: #9aa0a6;
+            font-size: 12px;
+            line-height: 1.45;
+            text-align: left;
+        }
+
+        .permission-footer .modal-btn {
+            width: 100%;
+        }
+
+        .modal-content {
+            background-color: var(--sidebar-color);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-subtitle {
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .modal-input {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            width: 100%;
+        }
+
+        .modal-input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .modal-file-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background-color: var(--bg-color);
+            border: 1px dashed var(--border-color);
+            color: var(--text-secondary);
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .modal-file-label:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .modal-btn {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .modal-btn:hover {
+            background-color: #3b78e7;
+        }
+
+        /* --- SIDEBAR LATERAL ESTILO GEMINI --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-color);
+            display: flex;
+            flex-direction: column;
+            padding: 16px 12px;
+            gap: 12px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8px 10px;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+
+        .brand-logo span {
+            background: linear-gradient(135deg, #4c8bf5, #8ab4f8, #f7c844);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-menu-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 50%;
+        }
+
+        .btn-menu-icon:hover {
+            background-color: var(--sidebar-hover);
+        }
+
+        .btn-nuevo-chat {
+            background-color: #28292c;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-nuevo-chat:hover {
+            background-color: #333538;
+        }
+
+        .nav-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background-color: var(--sidebar-hover);
+            color: var(--text-primary);
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #8e918f;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 12px 8px 4px;
+        }
+
+        .historial-lista {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .historial-item-container {
+            display: flex;
+            align-items: center;
+            border-radius: 12px;
+            padding-right: 4px;
+            transition: background 0.2s;
+        }
+
+        .historial-item-container:hover {
+            background-color: var(--sidebar-hover);
+        }
+
+        .historial-item {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .historial-item-container.active {
+            background-color: #2b2c2f;
+        }
+
+        .historial-item-container.active .historial-item {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .actions-chat {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .historial-item-container:hover .actions-chat {
+            opacity: 1;
+        }
+
+        .btn-action-chat {
+            background: transparent;
+            border: none;
+            color: #8e918f;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .btn-action-chat:hover {
+            color: var(--text-primary);
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .btn-action-chat.delete:hover {
+            color: #f28b82;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 8px;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* --- CHAT PRINCIPAL --- */
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            position: relative;
+            background-color: var(--bg-color);
+        }
+
+        .chat-header {
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .verity-status-tag {
+            font-size: 12px;
+            color: #8ab4f8;
+            background: rgba(138, 180, 248, 0.1);
+            padding: 3px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(138, 180, 248, 0.2);
+        }
+
+        .chat-mensajes {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            max-width: 860px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .mensaje {
+            display: flex;
+            gap: 16px;
+            max-width: 90%;
+            line-height: 1.6;
+            font-size: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .mensaje.ai { margin-right: auto; }
+        .mensaje.user { margin-left: auto; flex-direction: row-reverse; }
+
+        .avatar-container {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .avatar-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .burbuja {
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .mensaje.user .burbuja {
+            background-color: #2b2c2f;
+            color: var(--text-primary);
+            border-top-right-radius: 4px;
+        }
+
+        .mensaje.ai .burbuja {
+            background-color: transparent;
+            color: var(--text-primary);
+            padding-left: 0;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-family: 'Consolas', monospace;
+            font-size: 13.5px;
+            color: #8ab4f8;
+        }
+
+        .btn-audio {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        /* --- INPUT BAR Y MENÚ DESPLEGABLE --- */
+        .chat-input-container {
+            padding: 16px 24px 24px;
+            max-width: 860px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .sugerencias {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+        }
+
+        .chip-sugerencia {
+            background-color: var(--sidebar-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 12.5px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .chip-sugerencia:hover {
+            border-color: #4c8bf5;
+            color: var(--text-primary);
+        }
+
+        .input-box-wrapper {
+            position: relative;
+        }
+
+        .input-box {
+            display: flex;
+            align-items: center;
+            background-color: #1e1f20;
+            border: 1px solid var(--border-color);
+            border-radius: 28px;
+            padding: 8px 16px;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .input-box:focus-within {
+            border-color: #4c8bf5;
+        }
+
+        .input-box textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            max-height: 120px;
+            padding: 6px 0;
+            font-family: inherit;
+        }
+
+        .btn-input-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .btn-input-icon:hover {
+            background-color: var(--sidebar-hover);
+            color: var(--text-primary);
+        }
+
+        .menu-adjuntos {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            background-color: #28292c;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 100;
+            min-width: 180px;
+        }
+
+        .menu-adjuntos[hidden] {
+            display: none;
+        }
+
+        .menu-opcion {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 10px;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .menu-opcion:hover {
+            background-color: #333538;
+        }
+
+        .btn-enviar {
+            background-color: var(--accent-blue);
+            color: #fff;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .btn-enviar:hover {
+            background-color: #3b78e7;
+        }
+
+        .btn-live {
+            color: #8ab4f8;
+            border: 1px solid rgba(138, 180, 248, 0.3);
+            background: rgba(138, 180, 248, 0.08);
+        }
+
+        .btn-live:hover {
+            color: #fff;
+            background: rgba(138, 180, 248, 0.2);
+        }
+
+        .btn-live svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .live-mode[hidden] {
+            display: none;
+        }
+
+        .live-mode {
+            position: fixed;
+            inset: 0;
+            z-index: 900;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+            padding: 28px 24px 32px;
+            background:
+                radial-gradient(ellipse at 50% 43%, rgba(58, 76, 110, 0.28), transparent 42%),
+                radial-gradient(ellipse at 50% 110%, rgba(47, 64, 92, 0.22), transparent 48%),
+                #101114;
+        }
+
+        .live-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .live-title {
+            color: #f1f3f4;
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .live-stage {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .live-avatar-wrap {
+            position: relative;
+            width: min(58vh, 58vw);
+            height: min(58vh, 58vw);
+            min-width: 260px;
+            min-height: 260px;
+            max-width: 720px;
+            max-height: 720px;
+            display: grid;
+            place-items: center;
+            isolation: isolate;
+        }
+
+        .live-avatar-wrap::before,
+        .live-avatar-wrap::after {
+            content: "";
+            position: absolute;
+            inset: -3%;
+            z-index: -1;
+            border-radius: 50%;
+            background: conic-gradient(from 130deg, #5889e8, #b9d1ff, #9b76e8, #5889e8);
+            opacity: 0.72;
+            filter: blur(28px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+
+        .live-avatar-wrap::after {
+            inset: 5%;
+            opacity: 0.22;
+            filter: blur(56px);
+        }
+
+        .live-avatar-wrap.listening::before {
+            animation: liveGlow 2.2s ease-in-out infinite;
+        }
+
+        .live-avatar-wrap.speaking::before {
+            animation: liveGlow 0.7s ease-in-out infinite alternate;
+        }
+
+        @keyframes liveGlow {
+            from { transform: scale(0.98); opacity: 0.48; }
+            to { transform: scale(1.06); opacity: 0.9; }
+        }
+
+        .live-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.28);
+            box-shadow: 0 24px 90px rgba(0,0,0,0.45);
+        }
+
+        .live-subtitles {
+            position: absolute;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            width: min(680px, calc(100% - 24px));
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-start;
+            max-height: 30%;
+            overflow-y: auto;
+            transition: opacity 0.2s;
+        }
+
+        .live-subtitles[hidden] {
+            display: none;
+        }
+
+        .live-bubble {
+            max-width: 100%;
+            padding: 10px 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            background: rgba(28,30,35,0.88);
+            color: #f1f3f4;
+            font-size: 14px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            backdrop-filter: blur(16px);
+        }
+
+        .live-bubble.user {
+            align-self: flex-end;
+            background: rgba(76,139,245,0.2);
+            border-color: rgba(138,180,248,0.2);
+        }
+
+        .live-footer {
+            z-index: 1;
+            width: min(680px, 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .live-status {
+            min-height: 20px;
+            color: #b7bdc8;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .live-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .live-control {
+            min-width: 72px;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.07);
+            font: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+        }
+
+        .live-control:hover {
+            background: rgba(255,255,255,0.13);
+            transform: translateY(-2px);
+        }
+
+        .live-control[aria-pressed="true"] {
+            border-color: rgba(138,180,248,0.6);
+            background: rgba(76,139,245,0.2);
+        }
+
+        .live-control .control-icon {
+            width: 24px;
+            height: 24px;
+            display: grid;
+            place-items: center;
+            line-height: 1;
+        }
+
+        .live-control .control-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .live-control.mic-off {
+            color: #f28b82;
+            background: rgba(242,139,130,0.14);
+            border-color: rgba(242,139,130,0.38);
+        }
+
+        .live-control.exit-call {
+            color: #f28b82;
+            background: rgba(242,139,130,0.16);
+            border-color: rgba(242,139,130,0.35);
+        }
+
+        .live-control.exit-call:hover {
+            background: rgba(242,139,130,0.28);
+        }
+
+        .idle-notification {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 1100;
+            width: min(390px, calc(100vw - 32px));
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 20px;
+            background: rgba(34,36,40,0.97);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+            animation: fadeIn 0.25s ease;
+        }
+
+        .idle-notification[hidden] {
+            display: none;
+        }
+
+        .idle-notification img {
+            width: 58px;
+            height: 58px;
+            flex: 0 0 58px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .idle-notification-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .idle-notification-title {
+            margin-bottom: 4px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .idle-notification-message {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .idle-notification-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .idle-notification-actions button {
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: #8ab4f8;
+            font: inherit;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .idle-notification-close {
+            border: none;
+            background: transparent;
+            color: #9aa0a6;
+            font-size: 19px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        @media (max-width: 640px) {
+            .sidebar {
+                display: none;
+            }
+
+            .chat-header {
+                padding: 12px 16px;
+            }
+
+            .chat-input-container {
+                padding: 12px 14px 18px;
+            }
+
+            .live-mode {
+                padding: 18px 16px 24px;
+            }
+
+            .live-title {
+                font-size: 18px;
+            }
+
+            .live-avatar-wrap {
+                width: min(74vw, 52vh);
+                height: min(74vw, 52vh);
+                min-width: 230px;
+                min-height: 230px;
+            }
+
+            .live-subtitles {
+                bottom: 12px;
+                max-height: 34%;
+            }
+
+            .live-controls {
+                gap: 10px;
+            }
+
+            .live-control {
+                min-width: 68px;
+                min-height: 66px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <section class="permission-overlay" id="permissionSetup" role="dialog" aria-modal="true" aria-labelledby="permissionTitle" hidden>
+        <div class="permission-content">
+            <h1 class="modal-title" id="permissionTitle">Permisos para Verity</h1>
+            <p class="modal-subtitle">Elige cuáles funciones quieres habilitar. Tu navegador mostrará cada solicitud al tocar su botón.</p>
+            <div class="permission-list">
+                <div class="permission-item">
+                    <div class="permission-item-copy">
+                        <div class="permission-item-title">🔔 Notificaciones</div>
+                        <div class="permission-item-description">Para avisarte si pasa tiempo sin hablar.</div>
+                        <div class="permission-item-status" id="notificationPermissionStatus">Sin configurar</div>
+                    </div>
+                    <button class="permission-action" id="btnSolicitarNotificaciones" type="button">Permitir</button>
+                </div>
+                <div class="permission-item">
+                    <div class="permission-item-copy">
+                        <div class="permission-item-title">🎙️ Micrófono</div>
+                        <div class="permission-item-description">Para conversar con Verity en modo Live.</div>
+                        <div class="permission-item-status" id="microphonePermissionStatus">Sin configurar</div>
+                    </div>
+                    <button class="permission-action" id="btnSolicitarMicrofono" type="button">Permitir</button>
+                </div>
+                <div class="permission-item">
+                    <div class="permission-item-copy">
+                        <div class="permission-item-title">📍 Ubicación</div>
+                        <div class="permission-item-description">Incluir tu ubicación aproximada en el contexto del chat.</div>
+                        <div class="permission-item-status" id="geolocationPermissionStatus">Sin configurar</div>
+                    </div>
+                    <button class="permission-action" id="btnSolicitarUbicacion" type="button">Permitir</button>
+                </div>
+            </div>
+            <div class="permission-footer">
+                <span>El navegador guarda los permisos concedidos. Verity solo recuerda si ya revisaste este panel; no puede forzar permisos ni impedir que los cambies en la configuración del navegador.</span>
+                <span>Si un permiso aparece bloqueado, abre el icono junto a la dirección de la página → Permisos del sitio y cámbialo allí. Para notificaciones, abre Verity desde localhost o HTTPS; algunos navegadores las bloquean en archivos abiertos como file://.</span>
+                <button class="modal-btn" id="btnTerminarPermisos" type="button">Continuar</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- VENTANA MODAL DE REGISTRO -->
+    <div class="modal-overlay" id="modalRegistro" hidden>
+        <div class="modal-content">
+            <div class="modal-title">¡Bienvenido a Verity! ✨</div>
+            <div class="modal-subtitle">Para empezar a conversar, cuéntale a Verity cómo te llamas y elige tu foto de perfil.</div>
+            
+            <input type="text" id="inputNombreUsuario" class="modal-input" placeholder="Tu nombre o apodo..." autocomplete="off">
+            
+            <label class="modal-file-label">
+                📷 <span>Subir foto de perfil</span>
+                <input type="file" id="inputFotoPerfil" accept="image/*" hidden>
+            </label>
+            <div id="nombreArchivoSubido" style="font-size: 12px; color: var(--text-secondary); display: none;"></div>
+
+            <button class="modal-btn" onclick="guardarRegistroUsuario()">Comenzar</button>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-logo">
+                ✨ <span>Verity</span>
+            </div>
+            <button class="btn-menu-icon" title="Opciones">⋮</button>
+        </div>
+
+        <button class="btn-nuevo-chat" onclick="nuevoChat()">
+            <span>+</span> Nuevo chat
+        </button>
+
+        <div class="nav-section">
+            <div class="nav-item">📚 Biblioteca</div>
+            <div class="nav-item">🖼️ Imágenes</div>
+            <div class="nav-item">💻 Programado</div>
+        </div>
+
+        <div class="section-title">Historial de chats</div>
+        <div class="historial-lista" id="historialLista"></div>
+
+        <div class="user-profile">
+            <div class="user-info">
+                <img id="sidebarAvatar" src="mi-avatar.png" alt="Usuario" class="user-avatar" onerror="this.src='verity.jpg'">
+                <span id="sidebarUserName" class="user-name">Usuario</span>
+            </div>
+            <button class="btn-menu-icon" title="Ajustes" onclick="resetearRegistro()">🔁</button>
+        </div>
+    </div>
+
+    <!-- MAIN CHAT -->
+    <div class="main-chat">
+        <div class="chat-header">
+            <div class="header-title">
+                <span>Im Verity</span>
+                <span class="verity-status-tag" id="statusTag">🟢 En línea</span>
+            </div>
+
+            <div class="header-controls">
+                <select id="selectVoces" style="background: #2b2c2f; color: #e3e3e3; border: 1px solid #333538; padding: 5px 10px; border-radius: 12px; font-size: 13px;">
+                    <option value="">Cargando voces...</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="chat-mensajes" id="chatMensajes"></div>
+
+        <div class="chat-input-container">
+            <div class="sugerencias">
+                <div class="chip-sugerencia" onclick="usarSugerencia('Explícame qué es una API de forma sencilla')">💡 ¿Qué es una API?</div>
+                <div class="chip-sugerencia" onclick="usarSugerencia('Dame un consejo de programación en JavaScript')">💻 Consejo de JS</div>
+                <div class="chip-sugerencia" onclick="usarSugerencia('🎮 Chiste de programadores')">🎮 Chiste de programadores</div>
+            </div>
+
+            <div class="input-box-wrapper">
+                <div class="menu-adjuntos" id="menuAdjuntos" hidden>
+                    <button class="menu-opcion" onclick="abrirSelectorImagenes()">
+                        🖼️ Imágenes
+                    </button>
+                    <button class="menu-opcion" onclick="alert('Función de archivos varios próxima a implementarse')">
+                        📁 Archivos varios
+                    </button>
+                </div>
+
+                <div class="input-box">
+                    <button class="btn-input-icon" id="btnToggleMenu" title="Adjuntar contenido">+</button>
+                    <input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                    <textarea id="userInput" rows="1" placeholder="Escribe a Verity..." onkeydown="chequearEnter(event)" oninput="manejarEscritura()"></textarea>
+                    <button class="btn-enviar" onclick="enviarMensaje()">↑</button>
+                    <button class="btn-input-icon btn-live" id="btnAbrirLive" type="button" title="Hablar con Verity" aria-label="Abrir Talk with Verity">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                            <path d="M3 10v4M7 6v12M11 3v18M15 7v10M19 10v4M23 8v8"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="live-mode" id="liveMode" aria-label="Talk with Verity" aria-modal="true" role="dialog" hidden>
+        <header class="live-header">
+            <h1 class="live-title">Talk with Verity</h1>
+        </header>
+        <main class="live-stage">
+            <div class="live-avatar-wrap" id="liveAvatarWrap">
+                <img class="live-avatar" id="liveAvatar" src="verity.jpg" alt="Verity">
+            </div>
+            <div class="live-subtitles" id="liveSubtitles" aria-live="polite">
+                <div class="live-bubble" id="liveAssistantBubble">¡Hola! Estoy lista para hablar contigo.</div>
+                <div class="live-bubble user" id="liveUserBubble" hidden></div>
+            </div>
+        </main>
+        <footer class="live-footer">
+            <div class="live-status" id="liveStatus" role="status">Conectando el micrófono...</div>
+            <div class="live-controls">
+                <button class="live-control" id="btnToggleSubtitles" type="button" aria-pressed="true" title="Activar o desactivar subtítulos">
+                    <span class="control-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 5.5h16v13H4zM7.5 10h9M7.5 13h6"/></svg>
+                    </span>
+                    <span>Subtítulos</span>
+                </button>
+                <button class="live-control" id="btnToggleMic" type="button" aria-pressed="false" title="Activar o desactivar micrófono">
+                    <span class="control-icon" id="liveMicIcon" aria-hidden="true"></span>
+                    <span id="liveMicLabel">Activar micrófono</span>
+                </button>
+                <button class="live-control exit-call" id="btnSalirLive" type="button" title="Salir de la llamada" aria-label="Salir de la llamada">
+                    <span class="control-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4.7 14.2a11.8 11.8 0 0 1 14.6 0l-2.1 3.2a1 1 0 0 1-1.2.4l-2.2-.9a1 1 0 0 1-.6-.9v-1.1a9 9 0 0 0-2.4 0V16a1 1 0 0 1-.6.9l-2.2.9a1 1 0 0 1-1.2-.4z"/></svg>
+                    </span>
+                    <span>Salir</span>
+                </button>
+            </div>
+        </footer>
+    </section>
+
+    <aside class="idle-notification" id="idleNotification" role="status" aria-live="polite" hidden>
+        <img src="verity_desanimado.jpg" alt="Verity desanimada">
+        <div class="idle-notification-content">
+            <div class="idle-notification-title">Verity te extraña</div>
+            <div class="idle-notification-message" id="idleNotificationMessage">Vuelve para que sigamos hablando. Estoy aquí cuando quieras.</div>
+            <div class="idle-notification-actions">
+                <button id="btnPermitirNotificaciones" type="button">Activar notificaciones</button>
+                <button id="btnVolverChat" type="button">Volver al chat</button>
+            </div>
+        </div>
+        <button class="idle-notification-close" id="btnCerrarNotificacion" type="button" aria-label="Cerrar notificación">×</button>
+    </aside>
+
+    <script>
+        const url = "http://localhost:3000/api/chat";
+
+        const chatMensajes = document.getElementById("chatMensajes");
+        const userInput = document.getElementById("userInput");
+        const btnToggleMenu = document.getElementById("btnToggleMenu");
+        const menuAdjuntos = document.getElementById("menuAdjuntos");
+        const imageInput = document.getElementById("imageInput");
+        const historialLista = document.getElementById("historialLista");
+        const modalRegistro = document.getElementById("modalRegistro");
+        const inputNombreUsuario = document.getElementById("inputNombreUsuario");
+        const inputFotoPerfil = document.getElementById("inputFotoPerfil");
+        const nombreArchivoSubido = document.getElementById("nombreArchivoSubido");
+        const sidebarUserName = document.getElementById("sidebarUserName");
+        const sidebarAvatar = document.getElementById("sidebarAvatar");
+        const liveMode = document.getElementById("liveMode");
+        const liveStatus = document.getElementById("liveStatus");
+        const liveAvatar = document.getElementById("liveAvatar");
+        const liveAvatarWrap = document.getElementById("liveAvatarWrap");
+        const liveSubtitles = document.getElementById("liveSubtitles");
+        const liveUserBubble = document.getElementById("liveUserBubble");
+        const liveAssistantBubble = document.getElementById("liveAssistantBubble");
+        const btnToggleSubtitles = document.getElementById("btnToggleSubtitles");
+        const btnToggleMic = document.getElementById("btnToggleMic");
+        const liveMicLabel = document.getElementById("liveMicLabel");
+        const liveMicIcon = document.getElementById("liveMicIcon");
+        const idleNotification = document.getElementById("idleNotification");
+        const idleNotificationMessage = document.getElementById("idleNotificationMessage");
+        const btnPermitirNotificaciones = document.getElementById("btnPermitirNotificaciones");
+        const permissionSetup = document.getElementById("permissionSetup");
+        const notificationPermissionStatus = document.getElementById("notificationPermissionStatus");
+        const microphonePermissionStatus = document.getElementById("microphonePermissionStatus");
+        const geolocationPermissionStatus = document.getElementById("geolocationPermissionStatus");
+        const btnSolicitarNotificaciones = document.getElementById("btnSolicitarNotificaciones");
+        const btnSolicitarMicrofono = document.getElementById("btnSolicitarMicrofono");
+        const btnSolicitarUbicacion = document.getElementById("btnSolicitarUbicacion");
+
+        let db = null;
+        let conversations = [];
+        let currentConversationId = null;
+        let ubicacionCacheada = "Ubicación no disponible";
+        let fotoPerfilBase64 = "mi-avatar.png";
+        let modoLiveActivo = false;
+        let microfonoLiveActivo = false;
+        let reconocimientoLive = null;
+        let reconocimientoLiveActivo = false;
+        let liveProcesando = false;
+        let liveHablando = false;
+        let timerInactividadChat = null;
+        let notificacionInactividadMostrada = false;
+        let notificacionInactividadCerrada = false;
+        let notificacionNativaEnviada = false;
+        let timerSilencioLive = null;
+        let timerAnimacionLive = null;
+
+        const TIEMPO_INACTIVIDAD_CHAT = 5 * 60 * 1000;
+        const TIEMPO_SILENCIO_LIVE = 60 * 1000;
+        const CLAVE_PANEL_PERMISOS_COMPLETADO = "verity_permissions_setup_complete";
+        const CLAVE_ESTADOS_PERMISOS = "verity_permissions_state";
+
+        btnSolicitarNotificaciones.addEventListener("click", solicitarPermisoNotificaciones);
+        btnSolicitarMicrofono.addEventListener("click", solicitarPermisoMicrofono);
+        btnSolicitarUbicacion.addEventListener("click", solicitarPermisoUbicacion);
+        document.getElementById("btnTerminarPermisos").addEventListener("click", cerrarPanelPermisos);
+
+        function guardarEstadoPermiso(nombre, estado) {
+            const estadosGuardados = JSON.parse(localStorage.getItem(CLAVE_ESTADOS_PERMISOS) || "{}");
+            estadosGuardados[nombre] = estado;
+            localStorage.setItem(CLAVE_ESTADOS_PERMISOS, JSON.stringify(estadosGuardados));
+        }
+
+        function actualizarEstadoPermiso(elemento, boton, estado, etiqueta) {
+            const textos = {
+                granted: "Permitido por el navegador",
+                denied: "Bloqueado en la configuración del navegador",
+                prompt: "Pendiente de tu decisión",
+                unavailable: "No disponible en este navegador",
+                error: "No se pudo comprobar el permiso"
+            };
+            elemento.textContent = etiqueta || textos[estado] || "Sin configurar";
+            boton.textContent = estado === "granted" ? "Permitido" : estado === "denied" ? "Bloqueado" : estado === "unavailable" ? "No disponible" : "Permitir";
+            boton.disabled = estado === "granted" || estado === "denied" || estado === "unavailable";
+        }
+
+        async function consultarEstadoPermiso(nombre) {
+            if (!navigator.permissions || !navigator.permissions.query) return "prompt";
+            try {
+                const permiso = await navigator.permissions.query({ name: nombre });
+                return permiso.state;
+            } catch (error) {
+                console.warn(`No se pudo consultar el permiso de ${nombre}:`, error);
+                return "prompt";
+            }
+        }
+
+        async function inicializarPanelPermisos() {
+            if (localStorage.getItem(CLAVE_PANEL_PERMISOS_COMPLETADO) === "true") {
+                permissionSetup.hidden = true;
+                return;
+            }
+
+            permissionSetup.hidden = false;
+            if (!("Notification" in window)) {
+                actualizarEstadoPermiso(notificationPermissionStatus, btnSolicitarNotificaciones, "unavailable");
+                guardarEstadoPermiso("notifications", "unavailable");
+            } else {
+                const estado = Notification.permission === "default" ? "prompt" : Notification.permission;
+                actualizarEstadoPermiso(notificationPermissionStatus, btnSolicitarNotificaciones, estado);
+                guardarEstadoPermiso("notifications", estado);
+            }
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                actualizarEstadoPermiso(microphonePermissionStatus, btnSolicitarMicrofono, "unavailable");
+                guardarEstadoPermiso("microphone", "unavailable");
+            } else {
+                const estado = await consultarEstadoPermiso("microphone");
+                actualizarEstadoPermiso(microphonePermissionStatus, btnSolicitarMicrofono, estado);
+                guardarEstadoPermiso("microphone", estado);
+            }
+
+            if (!("geolocation" in navigator)) {
+                actualizarEstadoPermiso(geolocationPermissionStatus, btnSolicitarUbicacion, "unavailable");
+                guardarEstadoPermiso("geolocation", "unavailable");
+            } else {
+                const estado = await consultarEstadoPermiso("geolocation");
+                actualizarEstadoPermiso(geolocationPermissionStatus, btnSolicitarUbicacion, estado);
+                guardarEstadoPermiso("geolocation", estado);
+            }
+        }
+
+        function cerrarPanelPermisos() {
+            localStorage.setItem(CLAVE_PANEL_PERMISOS_COMPLETADO, "true");
+            permissionSetup.hidden = true;
+        }
+
+        async function solicitarPermisoNotificaciones() {
+            if (!("Notification" in window)) {
+                actualizarEstadoPermiso(notificationPermissionStatus, btnSolicitarNotificaciones, "unavailable");
+                guardarEstadoPermiso("notifications", "unavailable");
+                return;
+            }
+
+            try {
+                const estado = Notification.permission === "default"
+                    ? await Notification.requestPermission()
+                    : Notification.permission;
+                actualizarEstadoPermiso(notificationPermissionStatus, btnSolicitarNotificaciones, estado);
+                guardarEstadoPermiso("notifications", estado);
+            } catch (error) {
+                actualizarEstadoPermiso(notificationPermissionStatus, btnSolicitarNotificaciones, "error", "El navegador no pudo solicitar este permiso");
+                console.error("No se pudo solicitar el permiso de notificaciones:", error);
+            }
+        }
+
+        async function solicitarPermisoMicrofono() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                actualizarEstadoPermiso(microphonePermissionStatus, btnSolicitarMicrofono, "unavailable");
+                guardarEstadoPermiso("microphone", "unavailable");
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+                actualizarEstadoPermiso(microphonePermissionStatus, btnSolicitarMicrofono, "granted");
+                guardarEstadoPermiso("microphone", "granted");
+            } catch (error) {
+                const denegado = error.name === "NotAllowedError" || error.name === "SecurityError";
+                const estado = denegado ? "denied" : "error";
+                actualizarEstadoPermiso(
+                    microphonePermissionStatus,
+                    btnSolicitarMicrofono,
+                    estado,
+                    denegado ? "Acceso denegado; cámbialo en la configuración del navegador" : "No se encontró o no se pudo abrir un micrófono"
+                );
+                guardarEstadoPermiso("microphone", estado);
+                if (!denegado) console.error("No se pudo acceder al micrófono:", error);
+            }
+        }
+
+        function solicitarPermisoUbicacion() {
+            if (!("geolocation" in navigator)) {
+                actualizarEstadoPermiso(geolocationPermissionStatus, btnSolicitarUbicacion, "unavailable");
+                guardarEstadoPermiso("geolocation", "unavailable");
+                return;
+            }
+
+            iniciarUbicacionUnica((estado, detalle) => {
+                actualizarEstadoPermiso(geolocationPermissionStatus, btnSolicitarUbicacion, estado, detalle);
+                guardarEstadoPermiso("geolocation", estado);
+            });
+        }
+
+        // --- GESTIÓN DE LOCALSTORAGE Y MODAL DE REGISTRO ---
+        function verificarRegistroUsuario() {
+            const nombreGuardado = localStorage.getItem("verity_username");
+            const avatarGuardado = localStorage.getItem("verity_useravatar");
+
+            if (!nombreGuardado) {
+                modalRegistro.hidden = false;
+            } else {
+                sidebarUserName.textContent = nombreGuardado;
+                if (avatarGuardado) {
+                    fotoPerfilBase64 = avatarGuardado;
+                    sidebarAvatar.src = avatarGuardado;
+                }
+            }
+        }
+
+        inputFotoPerfil.addEventListener("change", (e) => {
+            const archivo = e.target.files[0];
+            if (archivo) {
+                const lector = new FileReader();
+                lector.onload = function(uploadEvent) {
+                    fotoPerfilBase64 = uploadEvent.target.result;
+                    nombreArchivoSubido.textContent = `✔ Imagen seleccionada: ${archivo.name}`;
+                    nombreArchivoSubido.style.display = "block";
+                };
+                lector.readAsDataURL(archivo);
+            }
+        });
+
+        function guardarRegistroUsuario() {
+            const nombre = inputNombreUsuario.value.trim();
+            if (!nombre) {
+                alert("Por favor escribe tu nombre.");
+                return;
+            }
+
+            localStorage.setItem("verity_username", nombre);
+            localStorage.setItem("verity_useravatar", fotoPerfilBase64);
+
+            sidebarUserName.textContent = nombre;
+            sidebarAvatar.src = fotoPerfilBase64;
+            modalRegistro.hidden = true;
+            marcarActividadChat();
+        }
+
+        // Permitir borrar / cambiar perfil al hacer clic en el engranaje de configuración
+        function resetearRegistro() {
+            if (confirm("¿Quieres cambiar tu nombre y foto de perfil?")) {
+                localStorage.removeItem("verity_username");
+                localStorage.removeItem("verity_useravatar");
+                location.reload();
+            }
+        }
+
+        // --- MENÚ DESPLEGABLE ADJUNTOS ---
+        btnToggleMenu.addEventListener("click", (e) => {
+            e.stopPropagation();
+            menuAdjuntos.hidden = !menuAdjuntos.hidden;
+        });
+
+        document.addEventListener("click", () => {
+            menuAdjuntos.hidden = true;
+        });
+
+        document.getElementById("btnAbrirLive").addEventListener("click", abrirModoLive);
+        document.getElementById("btnSalirLive").addEventListener("click", cerrarModoLive);
+        btnToggleSubtitles.addEventListener("click", alternarSubtitulosLive);
+        btnToggleMic.addEventListener("click", alternarMicrofonoLive);
+        document.getElementById("btnCerrarNotificacion").addEventListener("click", () => {
+            idleNotification.hidden = true;
+            notificacionInactividadCerrada = true;
+        });
+        document.getElementById("btnVolverChat").addEventListener("click", () => {
+            idleNotification.hidden = true;
+            marcarActividadChat();
+            window.focus();
+            userInput.focus();
+        });
+        btnPermitirNotificaciones.addEventListener("click", permitirNotificaciones);
+        document.addEventListener("visibilitychange", () => {
+            if (!document.hidden && notificacionNativaEnviada) {
+                notificacionNativaEnviada = false;
+                return;
+            }
+            if (!document.hidden && notificacionInactividadMostrada && !notificacionInactividadCerrada && !modoLiveActivo) {
+                mostrarNotificacionInactividad(false);
+            }
+        });
+        document.addEventListener("keydown", (evento) => {
+            if (evento.key === "Escape" && modoLiveActivo) cerrarModoLive();
+        });
+
+        function abrirModoLive() {
+            marcarActividadChat();
+            modoLiveActivo = true;
+            liveMode.hidden = false;
+            liveUserBubble.hidden = true;
+            liveAssistantBubble.textContent = "¡Hola! Estoy lista para hablar contigo.";
+            liveAssistantBubble.hidden = false;
+            liveSubtitles.hidden = false;
+            btnToggleSubtitles.setAttribute("aria-pressed", "true");
+            liveStatus.textContent = "Activa el micrófono para empezar a hablar.";
+            inicializarReconocimientoLive();
+            if (reconocimientoLive) alternarMicrofonoLive();
+        }
+
+        function cerrarModoLive() {
+            modoLiveActivo = false;
+            microfonoLiveActivo = false;
+            liveHablando = false;
+            liveProcesando = false;
+            detenerReconocimientoLive();
+            if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+            clearTimeout(timerSilencioLive);
+            clearInterval(timerAnimacionLive);
+            timerSilencioLive = null;
+            timerAnimacionLive = null;
+            liveAvatar.src = "verity.jpg";
+            liveAvatarWrap.classList.remove("listening", "speaking");
+            actualizarControlMicrofono();
+            liveMode.hidden = true;
+            renderizarConversacionActual();
+            programarNotificacionInactividad();
+        }
+
+        function inicializarReconocimientoLive() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                liveStatus.textContent = "El reconocimiento de voz no está disponible en este navegador.";
+                btnToggleMic.disabled = true;
+                return;
+            }
+
+            if (reconocimientoLive) return;
+            reconocimientoLive = new SpeechRecognition();
+            reconocimientoLive.lang = "es-ES";
+            reconocimientoLive.continuous = true;
+            reconocimientoLive.interimResults = true;
+
+            reconocimientoLive.onstart = () => {
+                reconocimientoLiveActivo = true;
+                liveStatus.textContent = "Te escucho...";
+                liveAvatarWrap.classList.add("listening");
+            };
+
+            reconocimientoLive.onresult = (evento) => {
+                let textoFinal = "";
+                let textoIntermedio = "";
+                for (let indice = evento.resultIndex; indice < evento.results.length; indice++) {
+                    const texto = evento.results[indice][0].transcript;
+                    if (evento.results[indice].isFinal) textoFinal += texto;
+                    else textoIntermedio += texto;
+                }
+
+                if (textoIntermedio.trim()) {
+                    reiniciarTemporizadorSilencioLive();
+                    marcarActividadChat();
+                    liveUserBubble.textContent = textoIntermedio.trim();
+                    liveUserBubble.hidden = false;
+                }
+                if (textoFinal.trim()) {
+                    reiniciarTemporizadorSilencioLive();
+                    marcarActividadChat();
+                    liveUserBubble.textContent = textoFinal.trim();
+                    liveUserBubble.hidden = false;
+                    procesarEntradaLive(textoFinal.trim());
+                }
+            };
+
+            reconocimientoLive.onerror = (evento) => {
+                if (evento.error === "not-allowed" || evento.error === "service-not-allowed") {
+                    microfonoLiveActivo = false;
+                    actualizarControlMicrofono();
+                    liveStatus.textContent = "Permite el acceso al micrófono para hablar con Verity.";
+                } else if (evento.error === "audio-capture") {
+                    microfonoLiveActivo = false;
+                    actualizarControlMicrofono();
+                    liveStatus.textContent = "No se encontró un micrófono disponible.";
+                } else if (evento.error !== "no-speech" && evento.error !== "aborted") {
+                    microfonoLiveActivo = false;
+                    actualizarControlMicrofono();
+                    liveStatus.textContent = "No se pudo iniciar el reconocimiento de voz.";
+                }
+            };
+
+            reconocimientoLive.onend = () => {
+                reconocimientoLiveActivo = false;
+                liveAvatarWrap.classList.remove("listening");
+                if (modoLiveActivo && microfonoLiveActivo && !liveHablando && !liveProcesando) {
+                    setTimeout(iniciarReconocimientoLive, 250);
+                }
+            };
+        }
+
+        function alternarMicrofonoLive() {
+            if (!reconocimientoLive) {
+                inicializarReconocimientoLive();
+                if (!reconocimientoLive) return;
+            }
+            microfonoLiveActivo = !microfonoLiveActivo;
+            actualizarControlMicrofono();
+            if (microfonoLiveActivo) {
+                reiniciarTemporizadorSilencioLive();
+                iniciarReconocimientoLive();
+            } else {
+                clearTimeout(timerSilencioLive);
+                timerSilencioLive = null;
+                liveAvatar.src = "verity.jpg";
+                detenerReconocimientoLive();
+                liveStatus.textContent = "Micrófono desactivado.";
+                liveAvatarWrap.classList.remove("listening");
+            }
+        }
+
+        function iniciarReconocimientoLive() {
+            if (!modoLiveActivo || !microfonoLiveActivo || liveHablando || liveProcesando || reconocimientoLiveActivo) return;
+            try {
+                reconocimientoLiveActivo = true;
+                reconocimientoLive.start();
+            } catch (error) {
+                if (error.name !== "InvalidStateError") {
+                    reconocimientoLiveActivo = false;
+                    microfonoLiveActivo = false;
+                    actualizarControlMicrofono();
+                    liveStatus.textContent = "No se pudo activar el micrófono.";
+                }
+            }
+        }
+
+        function detenerReconocimientoLive() {
+            if (!reconocimientoLive || !reconocimientoLiveActivo) return;
+            reconocimientoLive.stop();
+        }
+
+        function actualizarControlMicrofono() {
+            btnToggleMic.setAttribute("aria-pressed", String(microfonoLiveActivo));
+            btnToggleMic.classList.toggle("mic-off", !microfonoLiveActivo);
+            liveMicLabel.textContent = microfonoLiveActivo ? "Desactivar micrófono" : "Activar micrófono";
+            liveMicIcon.innerHTML = microfonoLiveActivo
+                ? '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg>'
+                : '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 11.5 5.4M12 18v3M9 21h6M3 3l18 18"/></svg>';
+        }
+
+        function reiniciarTemporizadorSilencioLive() {
+            clearTimeout(timerSilencioLive);
+            timerSilencioLive = null;
+            if (modoLiveActivo) liveAvatar.src = "verity.jpg";
+            if (!modoLiveActivo || !microfonoLiveActivo) return;
+
+            timerSilencioLive = setTimeout(() => {
+                if (modoLiveActivo && microfonoLiveActivo && !liveHablando && !liveProcesando) {
+                    liveAvatar.src = "verity_aburrido.jpg";
+                }
+            }, TIEMPO_SILENCIO_LIVE);
+        }
+
+        function alternarSubtitulosLive() {
+            const visibles = btnToggleSubtitles.getAttribute("aria-pressed") !== "true";
+            btnToggleSubtitles.setAttribute("aria-pressed", String(visibles));
+            liveSubtitles.hidden = !visibles;
+        }
+
+        async function procesarEntradaLive(texto) {
+            if (liveProcesando || !modoLiveActivo) return;
+            liveProcesando = true;
+            detenerReconocimientoLive();
+            liveStatus.textContent = "Verity está pensando...";
+            liveAvatarWrap.classList.remove("listening");
+
+            const conversacion = conversations.find(c => c.id === currentConversationId);
+            if (!conversacion) {
+                liveProcesando = false;
+                liveStatus.textContent = "No hay una conversación disponible.";
+                return;
+            }
+
+            conversacion.messages.push({ role: "user", text: texto });
+            if (conversacion.title === "Nuevo chat") {
+                conversacion.title = texto.slice(0, 30);
+                renderizarHistorial();
+            }
+
+            try {
+                const respuesta = await consultarVerity(`${texto}\n${obtenerContextoDispositivo()}`, []);
+                conversacion.messages.push({ role: "assistant", text: respuesta });
+                liveAssistantBubble.textContent = respuesta;
+                guardarConversacion(conversacion);
+                if (!modoLiveActivo) {
+                    liveProcesando = false;
+                    return;
+                }
+                marcarActividadChat();
+                leerRespuestaLive(respuesta);
+            } catch (error) {
+                const detalle = error instanceof Error ? error.message : "Error desconocido.";
+                liveAssistantBubble.textContent = `No pude responder: ${detalle}`;
+                liveStatus.textContent = "Hubo un problema al conectar con Verity.";
+                guardarConversacion(conversacion);
+                liveProcesando = false;
+                reiniciarTemporizadorSilencioLive();
+                if (microfonoLiveActivo) setTimeout(iniciarReconocimientoLive, 250);
+            }
+        }
+
+        function leerRespuestaLive(texto) {
+            liveProcesando = false;
+            if (!("speechSynthesis" in window)) {
+                liveStatus.textContent = "Respuesta lista. Puedes seguir hablando.";
+                reiniciarTemporizadorSilencioLive();
+                if (microfonoLiveActivo) setTimeout(iniciarReconocimientoLive, 250);
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(texto.replace(/[*_#`]/g, ""));
+            utterance.lang = "es-ES";
+            utterance.rate = 1.1;
+            const vozSeleccionada = document.getElementById("selectVoces").value;
+            const voz = vocesDisponibles.find(disponible => disponible.name === vozSeleccionada);
+            if (voz) utterance.voice = voz;
+            utterance.onstart = () => {
+                liveStatus.textContent = "Verity está hablando...";
+                liveAvatar.src = "verity_hablando.jpg";
+                liveAvatarWrap.classList.remove("listening");
+                liveAvatarWrap.classList.add("speaking");
+                clearTimeout(timerSilencioLive);
+                clearInterval(timerAnimacionLive);
+                let mostrandoHablando = true;
+                timerAnimacionLive = setInterval(() => {
+                    mostrandoHablando = !mostrandoHablando;
+                    liveAvatar.src = mostrandoHablando ? "verity_hablando.jpg" : "verity.jpg";
+                }, 350);
+            };
+            liveHablando = true;
+            const terminarRespuesta = () => {
+                liveHablando = false;
+                clearInterval(timerAnimacionLive);
+                timerAnimacionLive = null;
+                liveAvatar.src = "verity.jpg";
+                liveAvatarWrap.classList.remove("speaking");
+                if (modoLiveActivo) {
+                    liveStatus.textContent = microfonoLiveActivo ? "Te escucho..." : "Activa el micrófono para continuar.";
+                    reiniciarTemporizadorSilencioLive();
+                    if (microfonoLiveActivo) setTimeout(iniciarReconocimientoLive, 250);
+                }
+            };
+            utterance.onend = terminarRespuesta;
+            utterance.onerror = terminarRespuesta;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function guardarConversacion(conversacion) {
+            conversacion.updatedAt = Date.now();
+            if (db) {
+                const transaccion = db.transaction("chats", "readwrite");
+                transaccion.objectStore("chats").put(conversacion);
+            }
+        }
+
+        function abrirSelectorImagenes() {
+            menuAdjuntos.hidden = true;
+            imageInput.click();
+        }
+
+        // --- UBICACIÓN ---
+        function iniciarUbicacionUnica(alInformarEstado = null) {
+            if (!("geolocation" in navigator)) {
+                if (alInformarEstado) alInformarEstado("unavailable");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (posicion) => {
+                    ubicacionCacheada = `Latitud: ${posicion.coords.latitude.toFixed(2)}, Longitud: ${posicion.coords.longitude.toFixed(2)}`;
+                    if (alInformarEstado) alInformarEstado("granted", "Permitido; ubicación disponible para el contexto del chat");
+                },
+                (error) => {
+                    if (error.code === error.PERMISSION_DENIED) {
+                        ubicacionCacheada = "Ubicación restringida";
+                        if (alInformarEstado) alInformarEstado("denied", "Acceso denegado; cámbialo en la configuración del navegador");
+                        return;
+                    }
+
+                    ubicacionCacheada = "Ubicación no disponible";
+                    if (alInformarEstado) {
+                        const detalle = error.code === error.TIMEOUT
+                            ? "Se agotó el tiempo de espera al obtener la ubicación"
+                            : "El dispositivo no pudo determinar la ubicación";
+                        alInformarEstado("error", detalle);
+                    }
+                },
+                { timeout: 10000, maximumAge: 600000 }
+            );
+        }
+
+        function obtenerContextoDispositivo() {
+            const ahora = new Date();
+            const nombreUsuario = localStorage.getItem("verity_username") || "Usuario";
+            return `[Contexto del sistema - Usuario actual: ${nombreUsuario}, Hora local: ${ahora.toLocaleTimeString()}, Fecha: ${ahora.toLocaleDateString()}, Coordenadas: ${ubicacionCacheada}]`;
+        }
+
+        // --- INDEXEDDB / CHATS ---
+        function crearId() {
+            return window.crypto?.randomUUID ? window.crypto.randomUUID() : `chat-${Date.now()}`;
+        }
+
+        function abrirBaseDeDatos() {
+            return new Promise((resolve, reject) => {
+                const solicitud = indexedDB.open("verity-conversations", 1);
+                solicitud.onupgradeneeded = () => {
+                    const base = solicitud.result;
+                    if (!base.objectStoreNames.contains("chats")) {
+                        base.createObjectStore("chats", { keyPath: "id" });
+                    }
+                };
+                solicitud.onsuccess = () => resolve(solicitud.result);
+                solicitud.onerror = () => reject(solicitud.error);
+            });
+        }
+
+        async function inicializarConversaciones() {
+            db = await abrirBaseDeDatos();
+            const transaccion = db.transaction("chats", "readonly");
+            const solicitud = transaccion.objectStore("chats").getAll();
+            solicitud.onsuccess = async () => {
+                conversations = solicitud.result || [];
+                conversations.sort((a, b) => b.updatedAt - a.updatedAt);
+                if (conversations.length === 0) {
+                    await nuevoChat();
+                } else {
+                    currentConversationId = conversations[0].id;
+                    renderizarHistorial();
+                    renderizarConversacionActual();
+                }
+            };
+        }
+
+        function renderizarHistorial() {
+            historialLista.replaceChildren();
+            conversations.forEach(conversacion => {
+                const contenedor = document.createElement("div");
+                contenedor.className = `historial-item-container ${conversacion.id === currentConversationId ? 'active' : ''}`;
+
+                const item = document.createElement("button");
+                item.className = "historial-item";
+                item.textContent = conversacion.title || "Nuevo chat";
+                item.addEventListener("click", () => seleccionarConversacion(conversacion.id));
+
+                const acciones = document.createElement("div");
+                acciones.className = "actions-chat";
+
+                const btnRenombrar = document.createElement("button");
+                btnRenombrar.className = "btn-action-chat";
+                btnRenombrar.innerHTML = "✏️";
+                btnRenombrar.title = "Renombrar chat";
+                btnRenombrar.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    renombrarConversacion(conversacion.id);
+                });
+
+                const btnBorrar = document.createElement("button");
+                btnBorrar.className = "btn-action-chat delete";
+                btnBorrar.innerHTML = "🗑️";
+                btnBorrar.title = "Eliminar chat";
+                btnBorrar.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    eliminarConversacion(conversacion.id);
+                });
+
+                acciones.append(btnRenombrar, btnBorrar);
+                contenedor.append(item, acciones);
+                historialLista.appendChild(contenedor);
+            });
+        }
+
+        async function renombrarConversacion(id) {
+            const conversacion = conversations.find(c => c.id === id);
+            if (!conversacion) return;
+            const nuevoTitulo = prompt("Nuevo nombre para este chat:", conversacion.title);
+            if (nuevoTitulo && nuevoTitulo.trim() !== "") {
+                conversacion.title = nuevoTitulo.trim();
+                renderizarHistorial();
+                if (db) {
+                    const tx = db.transaction("chats", "readwrite");
+                    tx.objectStore("chats").put(conversacion);
+                }
+            }
+        }
+
+        async function eliminarConversacion(id) {
+            if (!confirm("¿Seguro que quieres borrar este chat?")) return;
+            conversations = conversations.filter(c => c.id !== id);
+            if (db) {
+                const transaccion = db.transaction("chats", "readwrite");
+                transaccion.objectStore("chats").delete(id);
+            }
+            if (conversations.length === 0) await nuevoChat();
+            else {
+                currentConversationId = conversations[0].id;
+                renderizarHistorial();
+                renderizarConversacionActual();
+            }
+        }
+
+        function seleccionarConversacion(id) {
+            currentConversationId = id;
+            renderizarHistorial();
+            renderizarConversacionActual();
+        }
+
+        function renderizarConversacionActual() {
+            chatMensajes.replaceChildren();
+            const conversacion = conversations.find(c => c.id === currentConversationId);
+            if (!conversacion || conversacion.messages.length === 0) {
+                renderizarMensaje({ role: "assistant", text: "¡Hola, soy Verity! Tu asistente personal inteligente. Pregúntame lo que quieras, ¡lo sé todo!" }, "msg_bienvenida");
+            } else {
+                conversacion.messages.forEach((m, idx) => renderizarMensaje(m, `msg_${idx}`));
+            }
+            chatMensajes.scrollTop = chatMensajes.scrollHeight;
+        }
+
+        function renderizarMensaje(mensaje, id) {
+            const div = document.createElement("div");
+            div.className = `mensaje ${mensaje.role === "user" ? "user" : "ai"}`;
+            div.id = id;
+
+            const avatarContainer = document.createElement("div");
+            avatarContainer.className = "avatar-container";
+            const img = document.createElement("img");
+            
+            if (mensaje.role === "user") {
+                img.src = localStorage.getItem("verity_useravatar") || "mi-avatar.png";
+                img.alt = "Tú";
+            } else {
+                img.src = "verity.jpg";
+                img.alt = "Verity";
+            }
+            avatarContainer.appendChild(img);
+
+            const burbuja = document.createElement("div");
+            burbuja.className = "burbuja";
+            
+            const textoFormateado = mensaje.text.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
+            burbuja.innerHTML = textoFormateado;
+
+            if (mensaje.role !== "user") {
+                const btnAudio = document.createElement("button");
+                btnAudio.className = "btn-audio";
+                btnAudio.innerHTML = "🔊 Escuchar";
+                btnAudio.onclick = () => leerTexto(
+                    mensaje.text.replace(/[*_#`]/g, ""),
+                    img
+                );
+                burbuja.appendChild(document.createElement("br"));
+                burbuja.appendChild(btnAudio);
+            }
+
+            div.append(avatarContainer, burbuja);
+            chatMensajes.appendChild(div);
+            chatMensajes.scrollTop = chatMensajes.scrollHeight;
+        }
+
+        async function nuevoChat() {
+            const conversacion = { id: crearId(), title: "Nuevo chat", updatedAt: Date.now(), messages: [] };
+            conversations.unshift(conversacion);
+            currentConversationId = conversacion.id;
+            renderizarHistorial();
+            renderizarConversacionActual();
+        }
+
+        async function enviarMensaje() {
+            const textoEscrito = userInput.value.trim();
+            if (!textoEscrito) return;
+            marcarActividadChat();
+
+            const conversacion = conversations.find(c => c.id === currentConversationId);
+            const contexto = obtenerContextoDispositivo();
+            const textoCompleto = `${textoEscrito} \n ${contexto}`;
+
+            renderizarMensaje({ role: "user", text: textoEscrito }, `user_${Date.now()}`);
+            conversacion.messages.push({ role: "user", text: textoEscrito });
+
+            if (conversacion.title === "Nuevo chat") {
+                conversacion.title = textoEscrito.slice(0, 30);
+                renderizarHistorial();
+            }
+
+            userInput.value = "";
+            
+            try {
+                const respuesta = await consultarVerity(textoCompleto, []);
+                conversacion.messages.push({ role: "assistant", text: respuesta });
+                const idRespuesta = `ai_${Date.now()}`;
+                renderizarMensaje({ role: "assistant", text: respuesta }, idRespuesta);
+                leerTexto(
+                    respuesta.replace(/[*_#`]/g, ""),
+                    document.querySelector(`#${idRespuesta} .avatar-container img`)
+                );
+                
+                if (db) {
+                    const tx = db.transaction("chats", "readwrite");
+                    tx.objectStore("chats").put(conversacion);
+                }
+            } catch (err) {
+                const detalle = err instanceof Error ? err.message : "Error desconocido.";
+                const detalleSeguro = detalle.replace(/[&<>]/g, caracter => ({
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;"
+                })[caracter]);
+                renderizarMensaje({ role: "assistant", text: `❌ ${detalleSeguro}` }, `err_${Date.now()}`);
+            }
+        }
+
+        async function consultarVerity(texto, imagenes) {
+            const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: texto, history: [], images: [] })
+            });
+            let data;
+            try {
+                data = await resp.json();
+            } catch {
+                throw new Error("El servidor devolvió una respuesta inválida.");
+            }
+
+            if (!resp.ok) {
+                throw new Error(typeof data?.error === "string" ? data.error : `Error del servidor (${resp.status}).`);
+            }
+
+            const respuesta = data?.response
+                || data?.candidates?.[0]?.content?.parts?.[0]?.text
+                || data?.text;
+            if (typeof respuesta !== "string" || !respuesta.trim()) {
+                throw new Error("El servidor respondió, pero no incluyó texto.");
+            }
+            return respuesta;
+        }
+
+        // --- ETIQUETA INACTIVIDAD ---
+        let timerInactividad = null;
+
+        function marcarActividadChat() {
+            notificacionInactividadMostrada = false;
+            notificacionInactividadCerrada = false;
+            idleNotification.hidden = true;
+            programarNotificacionInactividad();
+        }
+
+        function programarNotificacionInactividad() {
+            clearTimeout(timerInactividadChat);
+            timerInactividadChat = setTimeout(() => {
+                notificacionInactividadMostrada = true;
+                mostrarNotificacionInactividad(true);
+            }, TIEMPO_INACTIVIDAD_CHAT);
+        }
+
+        function mostrarNotificacionInactividad(enviarNotificacionNativa) {
+            if (modoLiveActivo || notificacionInactividadCerrada) return;
+            if (enviarNotificacionNativa && document.hidden && "Notification" in window && Notification.permission === "granted") {
+                try {
+                    const notificacion = new Notification("Verity te extraña", {
+                        body: "Vuelve para que sigamos hablando. Estoy aquí cuando quieras.",
+                        icon: "verity_desanimado.jpg",
+                        image: "verity_desanimado.jpg"
+                    });
+                    notificacion.onclick = () => {
+                        window.focus();
+                        notificacion.close();
+                    };
+                    notificacionNativaEnviada = true;
+                } catch (error) {
+                    console.error("No se pudo mostrar la notificación del sistema:", error);
+                }
+            } else if (!document.hidden) {
+                idleNotificationMessage.textContent = "Vuelve para que sigamos hablando. Estoy aquí cuando quieras.";
+                btnPermitirNotificaciones.hidden = !("Notification" in window) || Notification.permission !== "default";
+                idleNotification.hidden = false;
+            }
+        }
+
+        async function permitirNotificaciones() {
+            if (!("Notification" in window)) {
+                idleNotificationMessage.textContent = "Este navegador no admite notificaciones del sistema.";
+                btnPermitirNotificaciones.hidden = true;
+                return;
+            }
+
+            try {
+                const permiso = Notification.permission === "default"
+                    ? await Notification.requestPermission()
+                    : Notification.permission;
+                guardarEstadoPermiso("notifications", permiso);
+                if (permiso === "granted") {
+                    idleNotificationMessage.textContent = "¡Listo! Te avisaré cuando me extrañes.";
+                    btnPermitirNotificaciones.hidden = true;
+                } else {
+                    idleNotificationMessage.textContent = permiso === "denied"
+                        ? "Las notificaciones están bloqueadas. Puedes habilitarlas en la configuración del sitio en tu navegador."
+                        : "Las notificaciones del sistema están desactivadas. Puedes volver al chat cuando quieras.";
+                    btnPermitirNotificaciones.hidden = true;
+                }
+            } catch (error) {
+                idleNotificationMessage.textContent = "No se pudo solicitar permiso para las notificaciones.";
+                btnPermitirNotificaciones.hidden = true;
+                console.error("No se pudo solicitar permiso de notificaciones:", error);
+            }
+        }
+
+        function manejarEscritura() {
+            const statusTag = document.getElementById("statusTag");
+            statusTag.textContent = "🟢 Verity te escucha...";
+            statusTag.style.color = "#8ab4f8";
+            clearTimeout(timerInactividad);
+
+            timerInactividad = setTimeout(() => {
+                const frases = ["👀 Oye... ¿ya vas a volver?", "💤 Verity te espera...", "⚡ ¡Pregúntame algo!"];
+                statusTag.textContent = frases[Math.floor(Math.random() * frases.length)];
+                statusTag.style.color = "#f7c844";
+            }, 8000);
+        }
+
+        // --- VOCES Y AUDIO ---
+        let vocesDisponibles = [];
+        let avatarHablando = null;
+        let timerAnimacionAvatar = null;
+        let idLectura = 0;
+
+        function cargarVoces() {
+            if ('speechSynthesis' in window) {
+                vocesDisponibles = window.speechSynthesis.getVoices();
+                const select = document.getElementById('selectVoces');
+                select.innerHTML = '';
+                vocesDisponibles.filter(v => v.lang.startsWith('es')).forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.name;
+                    opt.textContent = `${v.name} (${v.lang})`;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = cargarVoces;
+            cargarVoces();
+        }
+
+        function leerTexto(texto, avatar = null) {
+            if ('speechSynthesis' in window) {
+                const idActual = ++idLectura;
+                clearInterval(timerAnimacionAvatar);
+                timerAnimacionAvatar = null;
+                if (avatarHablando) {
+                    avatarHablando.src = "verity.jpg";
+                    avatarHablando = null;
+                }
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(texto);
+                utterance.lang = 'es-ES';
+                utterance.rate = 1.20;
+                const sel = document.getElementById('selectVoces').value;
+                const v = vocesDisponibles.find(voz => voz.name === sel);
+                if (v) utterance.voice = v;
+                utterance.onstart = () => {
+                    if (idActual === idLectura && avatar) {
+                        let mostrandoHablando = true;
+                        avatar.src = "verity_hablando.jpg";
+                        avatarHablando = avatar;
+                        timerAnimacionAvatar = setInterval(() => {
+                            mostrandoHablando = !mostrandoHablando;
+                            avatar.src = mostrandoHablando ? "verity_hablando.jpg" : "verity.jpg";
+                        }, 150);
+                    }
+                };
+                const restaurarAvatar = () => {
+                    if (idActual === idLectura && avatarHablando === avatar) {
+                        clearInterval(timerAnimacionAvatar);
+                        timerAnimacionAvatar = null;
+                        avatar.src = "verity.jpg";
+                        avatarHablando = null;
+                    }
+                };
+                utterance.onend = restaurarAvatar;
+                utterance.onerror = restaurarAvatar;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function chequearEnter(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                enviarMensaje();
+            }
+        }
+
+        function usarSugerencia(txt) {
+            userInput.value = txt;
+            enviarMensaje();
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            verificarRegistroUsuario();
+            inicializarPanelPermisos();
+            inicializarConversaciones();
+            programarNotificacionInactividad();
+        });
+    </script>
+</body>
+</html>
