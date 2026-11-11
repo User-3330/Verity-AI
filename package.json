@@ -1,6 +1,5 @@
 {
-  "type": "module",
-  "name": "mi-ia",
+  "name": "Verity AI",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "DEMORENO3330",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
